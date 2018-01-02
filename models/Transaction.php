@@ -33,11 +33,13 @@ class Transaction extends \yii\db\ActiveRecord
     const STATUS_APPROVED = 'approved';
     const STATUS_DRAFT = 'draft';
     const STATUS_REJECTED = 'rejected';
+    const STATUS_CANCELED = 'canceled';
 
     const TYPE_CREDIT = 'credit';
     const TYPE_DEBIT = 'debit';
 
     const PURPOSE_TYPE_TOPUP = 'topup';
+    const PURPOSE_TYPE_RETURN = 'return';
     const PURPOSE_TYPE_ORDER = 'order';
     const PURPOSE_TYPE_DELIVERY = 'delivery';
     const PURPOSE_TYPE_PARCEL = 'parcel';
@@ -161,6 +163,17 @@ class Transaction extends \yii\db\ActiveRecord
         return $this->id;
     }
 
+    public function registerReturn()
+    {
+        $this->user_id=Yii::$app->user->id;
+        $this->account_id=Account::findOne(['user_id'=>$this->user_id])->id;
+	$this->type=self::TYPE_CREDIT;
+        $this->purpose_type=self::PURPOSE_TYPE_RETURN;
+	$this->status=self::STATUS_DRAFT;
+	$this->save();
+        return $this->id;
+    }
+
     public function approve()
     {
         //$this->user_id=Yii::$app->user->id;
@@ -179,11 +192,16 @@ class Transaction extends \yii\db\ActiveRecord
     public function reject()
     {
 	$this->status=self::STATUS_REJECTED;
-	$this->save();
 	//$account = $this->getAccount()->one();
         //$account->registerTransaction($this->id,$this->amount);
 	//$this->getAccount()->registerTransaction($this->id,$this->amount);
-        return $this->id;
+        return $this->save();
+    }
+
+    public function cancel()
+    {
+	$this->status=self::STATUS_CANCELED;
+        return $this->save();
     }
 
     public function getClientName()

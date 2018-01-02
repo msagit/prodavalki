@@ -111,6 +111,35 @@ class TransactionController extends Controller
             ]);
         }
     }
+    public function actionReturn($account_id=null)
+    {
+        $model = new Transaction();
+        /*
+            yii::$app->session->setFlash('error',  'Account : '.$model->account_id);
+            return $this->redirect(yii::$app->request->referrer);
+        */
+
+        if ($model->load(Yii::$app->request->post())) {
+         if (Yii::$app->user->getIdentity()->isClient()) {
+            $model->user_id=Yii::$app->user->id; 
+            $model->account_id=Yii::$app->user->getIdentity()->getAccountId(); 
+	 } else {
+            $model->account_id=$account_id; 
+         }
+         $account=$model->getAccount()->one();
+             if ($model->amount>$account->balance) {
+               yii::$app->session->setFlash('error',  'Current balance is lower than requested. Current balance: '.$account->balance);
+               return $this->redirect(yii::$app->request->referrer);
+             }
+	     if ($model->registerReturn()) {
+               return $this->redirect(['view', 'id' => $model->id]);
+             }
+        } else {
+            return $this->render('return', [
+                'model' => $model,
+            ]);
+        }
+    }
 
     /**
      * Approve a new Transaction model.
@@ -156,6 +185,21 @@ class TransactionController extends Controller
         }
 	}else {
             yii::$app->session->setFlash('error',  'Transation is not new. Current status is: '.$model->status);
+            return $this->redirect(yii::$app->request->referrer);
+	}
+	
+    }
+
+    public function actionCancel($id)
+    {
+        $model = $this->findModel($id);
+        if (($model->status===Transaction::STATUS_DRAFT) && ($model->purpose_type=== Transaction::PURPOSE_TYPE_TOPUP)){
+        if ($model->cancel()) {	
+               yii::$app->session->setFlash('success',  'Transation #'.$model->id.' canceled');
+            return $this->redirect(yii::$app->request->referrer);
+        }
+	}else {
+            yii::$app->session->setFlash('error',  'Transation cancel failed. Current status is: '.$model->status);
             return $this->redirect(yii::$app->request->referrer);
 	}
 	

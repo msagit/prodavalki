@@ -27,6 +27,7 @@ $this->params['breadcrumbs'][] = $this->title;
             ],
         ])?>-->
         <?= Html::a('Topup', ['transaction/topup'], ['class' => 'btn btn-success']) ?>
+        <?= Html::a('Return', ['transaction/return'], ['class' => 'btn btn-success']) ?>
     </p>
 
     <?= DetailView::widget([
@@ -56,12 +57,20 @@ $this->params['breadcrumbs'][] = $this->title;
             // 'linked_order_id',
             // 'linked_parcel_id',
             // 'comment',
-            ['class' => 'yii\grid\ActionColumn', 'template' => '{view}',
+            ['class' => 'yii\grid\ActionColumn', 'template' => '{view} {delete}',
                 'urlCreator' => function( $action, $model, $key, $index ){
                     if ($action == "view") {
                         return Url::to(['transaction/view', 'id' => $key]);
+                    } elseif ($action == "delete"){
+                        return Url::to(['transaction/cancel', 'id' => $key]);
                     }
-                }],
+                },
+                'visibleButtons' => [
+                  'delete' => function ($model, $key, $index) {
+                             return $model->status === Transaction::STATUS_DRAFT && $model->purpose_type=== Transaction::PURPOSE_TYPE_TOPUP ? true : false;
+                            }
+                ],
+            ],
         ],
             'rowOptions' => function ($model, $key, $index, $grid) {
               return ['style' => $model->purpose_type==Transaction::PURPOSE_TYPE_TOPUP?
@@ -69,7 +78,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                      'background-color:#fff0f0':
                                       ($model->status==Transaction::STATUS_APPROVED?
                                               'background-color:#f0fff0':
-                                              'background-color:#ffffff'
+                                              ($model->status==Transaction::STATUS_CANCELED?'background-color:#f5f5f5':'background-color:#ffffff')
                                       )
                                ):
                                'background-color:#f0f0ff'];
